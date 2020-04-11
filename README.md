@@ -1,6 +1,8 @@
 # Volumio Alexa Skill (via SQS)
 
-Set of lambdas and daemons allow voice control over [Volumio](https://volumio.org/) audio playback.
+Set of lambdas and daemons allow Alexa voice control over [Volumio](https://volumio.org/) audio playback.
+
+Alexa cannot call urls/ip's that are on a private network (`192.168.x.x`) and we don't really want to expose our Volumio box to 'tinternet.  So we'll get Alexa to plop a message onto an SQS queue and get a daemon on Volumio to poll the queue periodically and control Volumio.
 
 ## Architecture
 
