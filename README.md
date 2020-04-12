@@ -20,17 +20,33 @@ SQS queue has message put there via Alexa skill.
 
 ### volumio-sqs-poll-daemon
 
-TODO
-
 ```bash
 # env vars
 export DOMAIN="volumio" # can be localhost if run on Raspberry pi itself
+export SQS_ENDPOINT="sqs://my-aws-sqs-endpoint"
 volumio-sqs-poll
 ```
 
 ### Alexa skill
 
 TODO
+
+## TODO
+
+### v1
+
+- [ ] write poller
+- [ ] create manual SQS queue and command line bash addMessage
+- [ ] test poller
+- [ ] test poller on RasPi
+- [ ] write Alexa skill
+- [ ] create sqs queue
+- [ ] write CF for AWS deployment
+- [ ] deploy to RasPi
+
+### v2
+
+- [ ] respond to content of SQS message (play,pause,next track etc)
 
 ## Licence
 
