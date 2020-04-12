@@ -1,5 +1,7 @@
 # Volumio Alexa Skill (via SQS)
 
+![volumio logo](logo.png)
+
 Set of lambdas and daemons allow Alexa voice control over [Volumio](https://volumio.org/) audio playback.
 
 Alexa cannot call urls/ip's that are on a private network (`192.168.x.x`) and we don't really want to expose our Volumio box to whole 'tinternet or try some brittle port-forwarding/proxying.  

@@ -6,6 +6,10 @@ import (
 	"log"
 	"net/http"
 	"os"
+
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/sqs"
 )
 
 // ping sqs queue to see if status has changed, if it has then toggle volumio
@@ -27,9 +31,10 @@ func main() {
 		log.Fatal(sqsErr)
 	}
 	if sqsMsg == "" {
-		log.Print("No SQS message, exiting...")
+		log.Print("No SQS messages, exiting...")
 		os.Exit(0)
 	}
+	log.Print(sqsMsg)
 
 	// call volumio
 	volumioErr := callURL(domain)
@@ -47,6 +52,7 @@ func callURL(domain string) error {
 	if err != nil {
 		return err
 	}
+
 	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
 		log.Print("HTTP Status is not in the 2xx range")
 		log.Printf("Can't toggle Volumio via %s", url)
@@ -56,9 +62,33 @@ func callURL(domain string) error {
 	return nil
 }
 
-func pollSqs(url string) (string, error) {
+func pollSqs(sqsURL string) (string, error) {
 
-	log.Print(fmt.Sprintf("Polling %s for a sqs message", url))
+	log.Print(fmt.Sprintf("Polling %s for a sqs message", sqsURL))
 
-	return "", nil
+	sess := session.Must(session.NewSession())
+
+	svc := sqs.New(sess)
+
+	result, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
+		QueueUrl: &sqsURL,
+		AttributeNames: aws.StringSlice([]string{
+			"SentTimestamp",
+		}),
+		MaxNumberOfMessages: aws.Int64(1),
+		MessageAttributeNames: aws.StringSlice([]string{
+			"All",
+		}),
+		WaitTimeSeconds: aws.Int64(10),
+	})
+	if err != nil {
+		return "", err
+	}
+
+	log.Printf("Received %d messages.\n", len(result.Messages))
+	if len(result.Messages) == 0 {
+		return "", nil
+	}
+
+	return *result.Messages[0].Body, nil
 }
