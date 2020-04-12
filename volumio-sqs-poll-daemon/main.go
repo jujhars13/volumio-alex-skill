@@ -47,7 +47,7 @@ func main() {
 func callURL(domain string) error {
 
 	var url string = fmt.Sprintf("http://%s/api/v1/commands/?cmd=toggle", domain)
-	log.Print(fmt.Sprintf("Toggling Volumio on %s", url))
+	log.Printf("Toggling Volumio on %s", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
@@ -64,22 +64,16 @@ func callURL(domain string) error {
 
 func pollSqs(sqsURL string) (string, error) {
 
-	log.Print(fmt.Sprintf("Polling %s for a sqs message", sqsURL))
+	log.Printf("Polling %s for a sqs message", sqsURL)
 
 	sess := session.Must(session.NewSession())
 
 	svc := sqs.New(sess)
 
 	result, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
-		QueueUrl: &sqsURL,
-		AttributeNames: aws.StringSlice([]string{
-			"SentTimestamp",
-		}),
+		QueueUrl:            &sqsURL,
 		MaxNumberOfMessages: aws.Int64(1),
-		MessageAttributeNames: aws.StringSlice([]string{
-			"All",
-		}),
-		WaitTimeSeconds: aws.Int64(10),
+		WaitTimeSeconds:     aws.Int64(10),
 	})
 	if err != nil {
 		return "", err
