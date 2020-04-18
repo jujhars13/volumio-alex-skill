@@ -8,5 +8,7 @@ export DOMAIN="volumio"
 aws sqs send-message \
     --queue-url="${SQS_ENDPOINT}" \
     --message-body="test-play" 
-    
-volumio-sqs-poll-daemon
+
+if [[ "${BUILD}" != "false" ]]; then
+    volumio-sqs-poll-daemon
+fi

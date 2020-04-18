@@ -37,9 +37,9 @@ TODO
 
 ### v1
 
-- [ ] write poller
-- [ ] create manual SQS queue and command line bash addMessage
-- [ ] test poller
+- [x] write poller
+- [x] create manual SQS queue and command line bash addMessage
+- [x] test poller
 - [ ] test poller on RasPi
 - [ ] write Alexa skill
 - [ ] create sqs queue

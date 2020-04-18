@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
@@ -14,6 +15,8 @@ import (
 )
 
 var logger service.Logger
+
+const waitTime time.Duration = 20
 
 type program struct{}
 
@@ -36,23 +39,27 @@ func (p *program) run() {
 		log.Fatal("You must export a SQS_ENDPOINT")
 	}
 
-	// poll sqs for message
-	sqsMsg, sqsErr := pollSqs(sqsEndpoint)
-	if sqsErr != nil {
-		log.Fatal(sqsErr)
-	}
-	if sqsMsg == "" {
-		log.Print("No SQS messages, exiting...")
-		os.Exit(0)
-	}
-	log.Print(sqsMsg)
+	// repeat poll https://gist.github.com/ryanfitz/4191392
+	log.Printf("Pausing for %d seconds", waitTime)
+	for range time.Tick(waitTime * time.Second) {
 
-	// call volumio
-	volumioErr := callURL(domain)
-	if volumioErr != nil {
-		log.Fatal(volumioErr)
+		// poll sqs for message
+		sqsMsg, sqsErr := pollSqs(sqsEndpoint)
+		if sqsErr != nil {
+			log.Fatal(sqsErr)
+		}
+		if sqsMsg != "" {
+			log.Print(sqsMsg)
+			// call volumio
+			volumioErr := callURL(domain)
+			if volumioErr != nil {
+				log.Fatal(volumioErr)
+			}
+			log.Printf("Toggled Volumio")
+		}
+
+		log.Printf("Pausing for %d seconds", waitTime)
 	}
-	log.Printf("Toggled Volumio")
 }
 
 func (p *program) Stop(s service.Service) error {
@@ -109,7 +116,7 @@ func pollSqs(sqsURL string) (string, error) {
 
 	svc := sqs.New(sess)
 
-	result, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
+	receiveMsgResult, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
 		QueueUrl:            &sqsURL,
 		MaxNumberOfMessages: aws.Int64(1),
 		WaitTimeSeconds:     aws.Int64(10),
@@ -118,10 +125,19 @@ func pollSqs(sqsURL string) (string, error) {
 		return "", err
 	}
 
-	log.Printf("Received %d messages.\n", len(result.Messages))
-	if len(result.Messages) == 0 {
+	log.Printf("Received %d messages.\n", len(receiveMsgResult.Messages))
+	if len(receiveMsgResult.Messages) == 0 {
 		return "", nil
 	}
 
-	return *result.Messages[0].Body, nil
+	// remove message from queue
+	_, delErr := svc.DeleteMessage(&sqs.DeleteMessageInput{
+		QueueUrl:      &sqsURL,
+		ReceiptHandle: receiveMsgResult.Messages[0].ReceiptHandle,
+	})
+	if delErr != nil {
+		return "", delErr
+	}
+
+	return *receiveMsgResult.Messages[0].Body, nil
 }
