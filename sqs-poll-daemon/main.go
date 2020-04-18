@@ -18,15 +18,27 @@ var logger service.Logger
 
 const waitTime time.Duration = 20
 
-type program struct{}
+// Program structures.
+// Define Start and Stop methods.
+type program struct {
+	exit chan struct{}
+}
 
 func (p *program) Start(s service.Service) error {
+	if service.Interactive() {
+		logger.Info("Running in terminal.")
+	} else {
+		logger.Info("Running under service manager.")
+	}
+	p.exit = make(chan struct{})
+
 	// Start should not block. Do the actual work async.
 	go p.run()
 	return nil
 }
 
 func (p *program) run() {
+	logger.Infof("I'm running %v.", service.Platform())
 	// Do work here
 	domain, exists := os.LookupEnv("DOMAIN")
 	if !exists {
@@ -40,7 +52,7 @@ func (p *program) run() {
 	}
 
 	// repeat poll https://gist.github.com/ryanfitz/4191392
-	log.Printf("Pausing for %d seconds", waitTime)
+	logger.Infof("Pausing for %d seconds", waitTime)
 	for range time.Tick(waitTime * time.Second) {
 
 		// poll sqs for message
@@ -49,16 +61,16 @@ func (p *program) run() {
 			log.Fatal(sqsErr)
 		}
 		if sqsMsg != "" {
-			log.Print(sqsMsg)
+			logger.Infof(sqsMsg)
 			// call volumio
 			volumioErr := callURL(domain)
 			if volumioErr != nil {
 				log.Fatal(volumioErr)
 			}
-			log.Printf("Toggled Volumio")
+			logger.Infof("Toggled Volumio")
 		}
 
-		log.Printf("Pausing for %d seconds", waitTime)
+		logger.Infof("Pausing for %d seconds", waitTime)
 	}
 }
 
@@ -70,9 +82,9 @@ func (p *program) Stop(s service.Service) error {
 // ping sqs queue to see if status has changed, if it has then toggle volumio
 func main() {
 	svcConfig := &service.Config{
-		Name:        "sqs-poll-daemon",
-		DisplayName: "SQS Poll daemon",
-		Description: "Poll SQS to check for volumio messages.",
+		Name:        "volumio-sqs-poll-daemon",
+		DisplayName: "Volumio SQS Poll Daemon",
+		Description: "Poll SQS to check for volumio messages in SQS.",
 	}
 
 	prg := &program{}
@@ -90,31 +102,33 @@ func main() {
 	}
 }
 
+// Call volumio's REST api
 func callURL(domain string) error {
 
 	var url string = fmt.Sprintf("http://%s/api/v1/commands/?cmd=toggle", domain)
-	log.Printf("Toggling Volumio on %s", url)
+	logger.Infof("Toggling Volumio on %s", url)
 	resp, err := http.Get(url)
 	if err != nil {
 		return err
 	}
 
 	if !(resp.StatusCode >= 200 && resp.StatusCode <= 299) {
-		log.Print("HTTP Status is not in the 2xx range")
-		log.Printf("Can't toggle Volumio via %s", url)
+		logger.Info("HTTP Status is not in the 2xx range")
+		logger.Infof("Can't toggle Volumio via %s", url)
 		return errors.New("http response non 20x error")
 	}
 
 	return nil
 }
 
+// Check to see if we have a message
 func pollSqs(sqsURL string) (string, error) {
 
-	log.Printf("Polling %s for a sqs message", sqsURL)
+	logger.Infof("Polling %s for a sqs message", sqsURL)
 
-	sess := session.Must(session.NewSession())
+	awsSession := session.Must(session.NewSession())
 
-	svc := sqs.New(sess)
+	svc := sqs.New(awsSession)
 
 	receiveMsgResult, err := svc.ReceiveMessage(&sqs.ReceiveMessageInput{
 		QueueUrl:            &sqsURL,
@@ -125,7 +139,7 @@ func pollSqs(sqsURL string) (string, error) {
 		return "", err
 	}
 
-	log.Printf("Received %d messages.\n", len(receiveMsgResult.Messages))
+	logger.Infof("Received %d messages.\n", len(receiveMsgResult.Messages))
 	if len(receiveMsgResult.Messages) == 0 {
 		return "", nil
 	}
