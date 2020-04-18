@@ -1,6 +1,6 @@
 #!/bin/bash
 
-(cd volumio-sqs-poll-daemon && go fmt main.go && go install)
+(cd sqs-poll-daemon && go fmt main.go && go install)
 
 export SQS_ENDPOINT="https://sqs.eu-west-1.amazonaws.com/753637769290/jujhar-test-volumio"
 export DOMAIN="volumio"

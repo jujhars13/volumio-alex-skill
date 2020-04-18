@@ -10,10 +10,21 @@ import (
 	"github.com/aws/aws-sdk-go/aws"
 	"github.com/aws/aws-sdk-go/aws/session"
 	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/kardianos/service"
 )
 
-// ping sqs queue to see if status has changed, if it has then toggle volumio
-func main() {
+var logger service.Logger
+
+type program struct{}
+
+func (p *program) Start(s service.Service) error {
+	// Start should not block. Do the actual work async.
+	go p.run()
+	return nil
+}
+
+func (p *program) run() {
+	// Do work here
 	domain, exists := os.LookupEnv("DOMAIN")
 	if !exists {
 		domain = "volumio"
@@ -42,6 +53,34 @@ func main() {
 		log.Fatal(volumioErr)
 	}
 	log.Printf("Toggled Volumio")
+}
+
+func (p *program) Stop(s service.Service) error {
+	// Stop should not block. Return with a few seconds.
+	return nil
+}
+
+// ping sqs queue to see if status has changed, if it has then toggle volumio
+func main() {
+	svcConfig := &service.Config{
+		Name:        "sqs-poll-daemon",
+		DisplayName: "SQS Poll daemon",
+		Description: "Poll SQS to check for volumio messages.",
+	}
+
+	prg := &program{}
+	s, err := service.New(prg, svcConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	logger, err = s.Logger(nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	err = s.Run()
+	if err != nil {
+		logger.Error(err)
+	}
 }
 
 func callURL(domain string) error {
