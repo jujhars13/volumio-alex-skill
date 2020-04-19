@@ -40,11 +40,11 @@ TODO
 - [x] write poller
 - [x] create manual SQS queue and command line bash addMessage
 - [x] test poller
-- [ ] test poller on RasPi
+- [x] test poller on RasPi
+- [x] deploy daemon to RasPi
 - [ ] write Alexa skill
 - [ ] create sqs queue
 - [ ] write CF for AWS deployment
-- [ ] deploy to RasPi
 
 ### v2
 

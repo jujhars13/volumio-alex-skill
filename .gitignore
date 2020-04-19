@@ -33,6 +33,7 @@ tags
 *.dll
 *.so
 *.dylib
+volumio-sqs-poll-daemon-raspi
 
 # Test binary, built with `go test -c`
 *.test

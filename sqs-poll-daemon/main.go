@@ -16,7 +16,8 @@ import (
 
 var logger service.Logger
 
-const waitTime time.Duration = 20
+// how many seconds between polls
+const waitTime time.Duration = 62
 
 // Program structures.
 // Define Start and Stop methods.

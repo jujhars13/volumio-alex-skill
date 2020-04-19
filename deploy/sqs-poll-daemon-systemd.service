@@ -1,0 +1,15 @@
+[Unit]
+Description=Volumio SQS Poll Daemon service.
+
+[Service]
+Type=simple
+Environment="SQS_ENDPOINT=https://sqs.eu-west-1.amazonaws.com/753637769290/jujhar-test-volumio"
+Environment="DOMAIN=localhost:3000"
+Environment="AWS_DEFAULT_REGION=eu-west-1"
+Environment="AWS_REGION=eu-west-1"
+Environment="AWS_ACCESS_KEY_ID=__AWS_ACCESS_KEY_ID__"
+Environment="AWS_SECRET_ACCESS_KEY=__AWS_SECRET_ACCESS_KEY__"
+ExecStart=/opt/volumio-sqs-poll-daemon-raspi
+
+[Install]
+WantedBy=multi-user.target
